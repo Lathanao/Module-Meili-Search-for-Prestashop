@@ -21,20 +21,20 @@ use PrestaShop\PrestaShop\Adapter\Product\ProductColorsRetriever;
 define('_URL_', 'http://localhost');
 define('_PORT_', '7700');
 
-class ao_search extends Module implements WidgetInterface
+class ao_meili_search extends Module implements WidgetInterface
 {
     public $values = array('SEARCH_ACTIVE' => '1',
         'SEARCH_MEILI_ACTIVE' => '1',
         'SEARCH_TITLE' => array('1' => '',
-            '2' => ''),
+                                '2' => ''),
         'SEARCH_INPUT_MSG' => array('1' => 'Enter your search key ...',
                                     '2' => 'Recherchez un produit'),
-        'SEARCH_WAIT_MSG' => array('1' => 'Loading...',
-                                     '2' => 'Recherche en cours...'),
+        'SEARCH_WAIT_MSG' => array( '1' => 'Loading...',
+                                    '2' => 'Recherche en cours...'),
         'SEARCH_ERROR_MSG' => array('1' => 'Sorry, no results founded for this search.',
-            '2' => 'Désolé, la recherche n\'a retourné aucun résultat'),
-        'SEARCH_LINK' => array('1' => 'read more',
-            '2' => 'lire la suite'),
+                                    '2' => 'Désolé, la recherche n\'a retourné aucun résultat'),
+        'SEARCH_LINK' => array( '1' => 'read more',
+                                '2' => 'lire la suite'),
         'SEARCH_TRUNC_DESC' => '50',
         'SEARCH_TRUNC_TITLE' => '50',
         'SEARCH_ORDERWAY' => 'position',
@@ -44,21 +44,24 @@ class ao_search extends Module implements WidgetInterface
         'SEARCH_SHOW_DESC' => '1',
         'SEARCH_SHOW_PRICE' => '1',
         'SEARCH_UID_INDEX_PRODUCTS' => '',
-        'SEARCH_UID_INDEX_CATEGORIES' => ''
+        'SEARCH_UID_INDEX_CATEGORIES' => '',
+        'SEARCH_PROBLEM_CONNEXION' => '',
         );
 
-    public $templateFile = array(
-        'displayTop' => 'module:ao_search/views/ao_search_displayTop.tpl',
-        'displaySearchClean' => 'module:ao_search/views/ao_search_displaySearchClean.tpl',
-        'displayNotFound' => 'module:ao_search/views/ao_search_displayNotFound.tpl',
-        'displayMobile' => 'module:ao_search/views/ao_search_mobile.tpl');
+    private $isProblemConnexionDetected = false;
     /**
-     * @var bool
+     * @var bool|string
      */
+    private $indexListMeili;
+    /**
+     * @var array
+     */
+    private $templateFile;
+
 
     public function __construct()
     {
-        $this->name      = 'ao_search';
+        $this->name      = 'ao_meili_search';
         $this->tab       = 'front_office_features';
         $this->author    = 'Lathanao';
         $this->version   = '1.1.0';
@@ -66,18 +69,24 @@ class ao_search extends Module implements WidgetInterface
 
         parent::__construct();
 
-        $this->orderBy = array('0' => array('name' => 'asc'),
-            '1' => array('name' => 'desc'));
+        $this->orderBy = array( '0' => array('name' => 'asc'),
+                                '1' => array('name' => 'desc'));
 
         $this->orderWay = array('0' => array('name' => 'position'),
-            '1' => array('name' => 'date_add'),
-            '2' => array('name' => 'quantity'),
-            '3' => array('name' => 'price'));
+                                '1' => array('name' => 'date_add'),
+                                '2' => array('name' => 'quantity'),
+                                '3' => array('name' => 'price'));
 
-        $this->displayName = $this->trans('Search - visio', array(), 'Modules.' . $this->name . '.Admin');
-        $this->description = $this->trans('Speed up your research on online shop.', array(), 'Modules.' . $this->name . '.Admin');
+        $this->displayName = $this->trans('Meili Search', array(), 'Modules.' . $this->name . '.Admin');
+        $this->description = $this->trans('Speed up your research on online shop with an instant engine.', array(), 'Modules.' . $this->name . '.Admin');
         $this->ps_versions_compliancy = array('min' => '1.7.0.0', 'max' => _PS_VERSION_);
         $this->controllers = array('ajax');
+
+        $this->templateFile = array(
+        'displayTop' => 'module:' . $this->name . '/views/ao_search_displayTop.tpl',
+        'displaySearchClean' => 'module:' . $this->name . '/views/ao_search_displaySearchClean.tpl',
+        'displayNotFound' => 'module:' . $this->name . '/views/ao_search_displayNotFound.tpl',
+        'displayMobile' => 'module:' . $this->name . '/views/ao_search_mobile.tpl');
     }
 
     public function install()
@@ -96,10 +105,13 @@ class ao_search extends Module implements WidgetInterface
 
     public function hookdisplayHeader($params)
     {
-        Media::addJsDef(array('UidIndexSearchProducts' => $this->getUidIndexProducts()));
-        Media::addJsDef(array('UidIndexSearchCategories' => $this->getUidIndexCategories()));
+        Media::addJsDef(array('UidIndexSearchProducts' => $this->getUidIndexMieli()));
+        Media::addJsDef(array('UidIndexSearchCategories' => $this->getUidIndexMieli('categories')));
         Media::addJsDef(array('SearchLimitItem' =>  Configuration::get('SEARCH_LIMIT_ITEM', $this->context->language->id)));
+
         Media::addJsDef(array("SearchUrl" => $this->context->link->getModuleLink($this->name, 'ajax', array(), null, null, null, true)));
+        Media::addJsDef(array("DirectSearchUrl" => $this->context->link->getModuleLink($this->name, 'ajax', array(), null, null, null, true)));
+
         Media::addJsDef(array("SearchWaitMsg" => Configuration::get('SEARCH_WAIT_MSG', $this->context->language->id)));
         Media::addJsDef(array("SearchErrorMsg" => Configuration::get('SEARCH_ERROR_MSG', $this->context->language->id)));
 
@@ -113,11 +125,6 @@ class ao_search extends Module implements WidgetInterface
         $this->context->controller->registerJavascript(
             'modules-js-' . $this->name,
             'modules/' . $this->name . '/js/' . $this->name . '.js',
-            ['position' => 'bottom', 'priority' => 800]
-        );
-        $this->context->controller->registerJavascript(
-            'modules-js-meili-' . $this->name,
-            'modules/' . $this->name . '/js/ao_meilisearch.js',
             ['position' => 'bottom', 'priority' => 800]
         );
     }
@@ -314,7 +321,7 @@ class ao_search extends Module implements WidgetInterface
             $hookName = $configuration['hook'];
         }
 
-        if (!Configuration::get('SEARCH_ACTIVE')) {
+        if (!Configuration::get('SEARCH_ACTIVE') || $this->isProblemConnexionDetected) {
             return false;
         }
 
@@ -478,36 +485,37 @@ class ao_search extends Module implements WidgetInterface
         return $this->values;
     }
 
-    public function getUidIndexCategories($html = null)
+    public function getUidIndexMieli($index = 'products')
     {
-//        if(Configuration::get('SEARCH_UID_INDEX_CATEGORIES')) {
-//            return Configuration::get('SEARCH_UID_INDEX_CATEGORIES');
-//        }
+        $cacheId = 'Module::' . $this->name . $index;
 
-        $uri = 'http://127.0.0.1/indexes';
-        foreach (json_decode($this->curlRequest($uri, null, 'GET'), true) as $item) {
-            if ($item['name'] === 'categories') {
-                Configuration::updateValue('SEARCH_UID_INDEX_CATEGORIES', $item['uid']);
-                return $item['uid'];
+        if (!Cache::isStored($cacheId)) {
+
+            $result = '';
+            $uri = 'http://127.0.0.1/indexes';
+            $this->indexListMeili = $this->curlRequest($uri, null, 'GET');
+
+            if (!$this->indexListMeili && _PS_MODE_DEV_) {
+                $this->isProblemConnexionDetected = true;
+                throw new \Exception('Connexion with Meili Search server not found. You need to start Meili server and set the URL API correctly.');
             }
-        }
-        return false;
-    }
-
-    public function getUidIndexProducts($html = null)
-    {
-//        if(Configuration::get('SEARCH_UID_INDEX_PRODUCTS')) {
-//            return Configuration::get('SEARCH_UID_INDEX_PRODUCTS');
-//        }
-
-        $uri = 'http://127.0.0.1/indexes';
-        foreach (json_decode($this->curlRequest($uri, null, 'GET'), true) as $item) {
-            if ($item['name'] === 'products') {
-                Configuration::updateValue('SEARCH_UID_INDEX_PRODUCTS', $item['uid']);
-                return $item['uid'];
+            foreach (json_decode( $this->indexListMeili, true) as $item) {
+                if ($item['name'] === $index) {
+                    Configuration::updateValue('SEARCH_UID_INDEX_PRODUCTS', $item['uid']);
+                    $result = $item['uid'];
+                }
             }
+            if (!$result && _PS_MODE_DEV_) {
+                $this->isProblemConnexionDetected = true;
+                throw new \Exception('Index ' . $index . ' in Meili Search server not found. You need to set indexes.');
+            }
+
+            Cache::store($cacheId, $result);
+        } else {
+            $result = Cache::retrieve($cacheId);
         }
-        return false;
+
+        return $result;
     }
 
     public function getUidIndexSearch($html = null)
