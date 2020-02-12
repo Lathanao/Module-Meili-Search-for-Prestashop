@@ -1,5 +1,13 @@
 <?php
-
+/*******************************************************************
+ *          2020 Lathanao - Module for Prestashop
+ *          Add a great module and modules on your great shop.
+ *
+ *          @author         Lathanao <welcome@lathanao.com>
+ *          @copyright      2020 Lathanao
+ *          @version        1.0
+ *          @license        MIT (see LICENCE file)
+ ********************************************************************/
 
 ini_set('max_execution_time', 1);
 error_reporting(E_ALL);
@@ -11,60 +19,26 @@ define('_INDEX_', 'v5dzl8ki');
 define('_COLLECTION_', 'products');
 define('_QUERY_', 'captor');
 
-
-$uri = '';
-if(isset($_GET['query'])) {
-    $query = filter_var($_GET['query'], FILTER_SANITIZE_STRING, FILTER_FLAG_STRIP_HIGH);
-    $uri = _URL_ . '/indexes/' . _INDEX_ . '/search?q=' . $query;
-} else {
-    header('Content-Type: text/plain');
-    die('No query search found');
-}
-if(isset($_GET['attributesToHighlight'])) {
-    $attributesToHighlight = filter_var($_GET['attributesToHighlight'], FILTER_SANITIZE_STRING, FILTER_FLAG_STRIP_HIGH);
-    $uri .= '&attributesToHighlight=' . $attributesToHighlight;
-} else {
-    $uri .= '&attributesToHighlight=\'name,description\'';
-}
-if(isset($_GET['description'])) {
-    $attributesToCrop = filter_var($_GET['description'], FILTER_SANITIZE_STRING, FILTER_FLAG_STRIP_HIGH);
-    $uri .= '&attributesToCrop=' . $attributesToCrop;
-} else {
-    $uri .= '&attributesToCrop=\'description\'';
-}
-if(isset($_GET['cropLength'])) {
-    $cropLength = filter_var($_GET['cropLength'], FILTER_SANITIZE_STRING, FILTER_FLAG_STRIP_HIGH);
-    $uri .= '&cropLength=' . $cropLength;
-} else {
-    $uri .= '&cropLength=200';
-}
-if(isset($_GET['limit'])) {
-    $limit = filter_var($_GET['limit'], FILTER_SANITIZE_STRING, FILTER_FLAG_STRIP_HIGH);
-    $uri .= '&limit=' . $limit;
-} else {
-    $uri .= '&limit=2';
-}
+$fieldToManage = array(
+    'attributesToHighlight',
+    'description',
+    'cropLength',
+    'limit',
+);
 
 
-//    $attributesToHighlight = filter_var($_GET['attributesToHighlight'], FILTER_SANITIZE_STRING, FILTER_FLAG_STRIP_HIGH);
-//    $attributesToCrop = filter_var($_GET['description'], FILTER_SANITIZE_STRING, FILTER_FLAG_STRIP_HIGH);
-//    $cropLength = filter_var($_GET['cropLength'], FILTER_SANITIZE_STRING, FILTER_FLAG_STRIP_HIGH);
-//    $limit = filter_var($_GET['limit'], FILTER_SANITIZE_STRING, FILTER_FLAG_STRIP_HIGH);
+$uri = _URL_ . '/indexes/' . _INDEX_ . '/search?';
 
-//
-//$uri = _URL_ . '/indexes/' . _INDEX_ . '/search?q=' . $query;
-//$uri .= '&attributesToHighlight=\'name,description\'';
-//$uri .= '&attributesToCrop=\'description\'';
-//$uri .= '&cropLength=200';
-//$uri .= '&limit=2';
+foreach ($_GET as $key => &$getItem) {
+    if (array_key_exists($key, $fieldToManage)) {
+        $getItem = filter_var($getItem, FILTER_SANITIZE_STRING, FILTER_FLAG_STRIP_HIGH);
+        $uri .=  $key . '=' . $getItem . '&';
+    }
+}
 
-$data = [];
 header('Content-Type: application/json; charset=utf-8');
-echo curlRequest($uri, '[' . json_encode($data) . ']' , $type = 'GET');
-
-
+echo curlRequest($uri, null , $type = 'GET');
 die();
-
 
 
 function curlRequest($uri, $data = null, $method = 'POST')

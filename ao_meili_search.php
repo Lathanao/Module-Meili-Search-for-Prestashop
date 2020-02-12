@@ -1,12 +1,13 @@
 <?php
-/**
- *       Visio Modules for Visio template
+/*******************************************************************
+ *          2020 Lathanao - Module for Prestashop
+ *          Add a great module and modules on your great shop.
  *
- * @author         Lathanao <welcome@lathanao.com>
- * @copyright      2018 Lathanao
- * @license        OSL-3
- * @version        1.0
- **/
+ *          @author         Lathanao <welcome@lathanao.com>
+ *          @copyright      2020 Lathanao
+ *          @version        1.0
+ *          @license        MIT (see LICENCE file)
+ ********************************************************************/
 
 if (!defined('_PS_VERSION_')) {
     exit;
@@ -23,30 +24,17 @@ define('_PORT_', '7700');
 
 class ao_meili_search extends Module implements WidgetInterface
 {
-    public $values = array('SEARCH_ACTIVE' => '1',
-        'SEARCH_MEILI_ACTIVE' => '1',
-        'SEARCH_TITLE' => array('1' => '',
-                                '2' => ''),
-        'SEARCH_INPUT_MSG' => array('1' => 'Enter your search key ...',
-                                    '2' => 'Recherchez un produit'),
-        'SEARCH_WAIT_MSG' => array( '1' => 'Loading...',
-                                    '2' => 'Recherche en cours...'),
-        'SEARCH_ERROR_MSG' => array('1' => 'Sorry, no results founded for this search.',
-                                    '2' => 'Désolé, la recherche n\'a retourné aucun résultat'),
-        'SEARCH_LINK' => array( '1' => 'read more',
-                                '2' => 'lire la suite'),
-        'SEARCH_TRUNC_DESC' => '50',
-        'SEARCH_TRUNC_TITLE' => '50',
-        'SEARCH_ORDERWAY' => 'position',
-        'SEARCH_ORDERBY' => 'desc',
-        'SEARCH_LIMIT_ITEM' => '10',
-        'SEARCH_SHOW_VIEW' => '1',
-        'SEARCH_SHOW_DESC' => '1',
-        'SEARCH_SHOW_PRICE' => '1',
-        'SEARCH_UID_INDEX_PRODUCTS' => '',
-        'SEARCH_UID_INDEX_CATEGORIES' => '',
-        'SEARCH_PROBLEM_CONNEXION' => '',
-        );
+    public $values = array( 'SEARCH_MEILI_ACTIVE' => '1',
+                            'SEARCH_API_URL' => 'http://127.0.0.1',
+                            'SEARCH_API_PORT' => '700',
+                            'SEARCH_LIMIT_PRODUCTS' => '6',
+                            'SEARCH_LIMIT_CATEGORY' => '2',
+                            'SEARCH_UID_PRODUCT' => '',
+                            'SEARCH_UID_CATEGORY' => '',
+                            'SEARCH_INPUT_MSG' => array(
+                                '1' => 'Enter your search key ...',
+                                '2' => 'Recherchez un produit'),
+                            );
 
     private $isProblemConnexionDetected = false;
     /**
@@ -69,24 +57,13 @@ class ao_meili_search extends Module implements WidgetInterface
 
         parent::__construct();
 
-        $this->orderBy = array( '0' => array('name' => 'asc'),
-                                '1' => array('name' => 'desc'));
-
-        $this->orderWay = array('0' => array('name' => 'position'),
-                                '1' => array('name' => 'date_add'),
-                                '2' => array('name' => 'quantity'),
-                                '3' => array('name' => 'price'));
-
         $this->displayName = $this->trans('Meili Search', array(), 'Modules.' . $this->name . '.Admin');
         $this->description = $this->trans('Speed up your research on online shop with an instant engine.', array(), 'Modules.' . $this->name . '.Admin');
-        $this->ps_versions_compliancy = array('min' => '1.7.0.0', 'max' => _PS_VERSION_);
+        $this->ps_versions_compliancy = array('min' => '1.7.1.0', 'max' => _PS_VERSION_);
         $this->controllers = array('ajax');
 
         $this->templateFile = array(
-        'displayTop' => 'module:' . $this->name . '/views/ao_search_displayTop.tpl',
-        'displaySearchClean' => 'module:' . $this->name . '/views/ao_search_displaySearchClean.tpl',
-        'displayNotFound' => 'module:' . $this->name . '/views/ao_search_displayNotFound.tpl',
-        'displayMobile' => 'module:' . $this->name . '/views/ao_search_mobile.tpl');
+            'displayTop' => 'module:' . $this->name . '/views/ao_search_displayTop.tpl');
     }
 
     public function install()
@@ -105,8 +82,9 @@ class ao_meili_search extends Module implements WidgetInterface
 
     public function hookdisplayHeader($params)
     {
-        Media::addJsDef(array('UidIndexSearchProducts' => $this->getUidIndexMieli()));
-        Media::addJsDef(array('UidIndexSearchCategories' => $this->getUidIndexMieli('categories')));
+        Media::addJsDef(array('UidIndexSearchProducts' => Configuration::get('SEARCH_UID_PRODUCT')));
+        Media::addJsDef(array('UidIndexSearchCategories' => Configuration::get('SEARCH_UID_CATEGORY')));
+
         Media::addJsDef(array('SearchLimitItem' =>  Configuration::get('SEARCH_LIMIT_ITEM', $this->context->language->id)));
 
         Media::addJsDef(array("SearchUrl" => $this->context->link->getModuleLink($this->name, 'ajax', array(), null, null, null, true)));
@@ -114,6 +92,9 @@ class ao_meili_search extends Module implements WidgetInterface
 
         Media::addJsDef(array("SearchWaitMsg" => Configuration::get('SEARCH_WAIT_MSG', $this->context->language->id)));
         Media::addJsDef(array("SearchErrorMsg" => Configuration::get('SEARCH_ERROR_MSG', $this->context->language->id)));
+
+
+        Media::addJsDef(array("URL_API_MEILI" => Configuration::get('SEARCH_API_URL') . ':' . Configuration::get('SEARCH_API_PORT')));
 
 
         $this->context->controller->registerStylesheet(
@@ -142,7 +123,7 @@ class ao_meili_search extends Module implements WidgetInterface
         $fields_form = array(
             'form' => array(
                 'legend' => array('title' => $this->trans('Settings', array(), 'Admin.Global'), 'icon' => 'icon-cogs'),
-                'description' => $this->trans('You can modify the image size in image configurator (improve -> design -> image settings) (default size (50px)).', array(), 'Modules.' . $this->name . '.Admin'),
+                'description' => $this->trans('You must too install a Meili server on your server.', array(), 'Modules.' . $this->name . '.Admin'),
                 'input' => array(
                     array(
                         'type' => 'switch',
@@ -163,138 +144,20 @@ class ao_meili_search extends Module implements WidgetInterface
                             )
                         ),
                     ),
-                    array(
-                        'type' => 'switch',
-                        'label' => $this->trans('Activate module', array(), 'Admin.Global'),
-                        'name' => 'SEARCH_MEILI_ACTIVE',
-                        'required' => false,
-                        'is_bool' => true,
-                        'values' => array(
-                            array(
-                                'id' => 'active_on',
-                                'value' => 1,
-                                'label' => $this->trans('Enabled', array(), 'Admin.Global')
-                            ),
-                            array(
-                                'id' => 'active_off',
-                                'value' => 0,
-                                'label' => $this->trans('Disabled', array(), 'Admin.Global')
-                            )
-                        ),
-                    ),
-                    array(
-                        'type' => 'text',
-                        'lang' => true,
-                        'label' => $this->trans('Title of the block search', array(), 'Modules.' . $this->name . '.Admin'),
-                        'name' => 'SEARCH_TITLE',
-                        'desc' => $this->trans('For displaying nothing, leave this field blank.', array(), 'Modules.' . $this->name . '.Admin'),
-                    ),
-                    array(
-                        'type' => 'text',
-                        'lang' => true,
-                        'label' => $this->trans('Message for input query', array(), 'Modules.' . $this->name . '.Admin'),
-                        'name' => 'SEARCH_INPUT_MSG',
-                        'desc' => $this->trans('choose message for input query.', array(), 'Modules.' . $this->name . '.Admin'),
-                    ),
-                    array(
-                        'type' => 'text',
-                        'lang' => true,
-                        'label' => $this->trans('Message for waiting during searching', array(), 'Modules.' . $this->name . '.Admin'),
-                        'name' => 'SEARCH_WAIT_MSG',
-                        'desc' => $this->trans('Choose message for waiting during searching.', array(), 'Modules.' . $this->name . '.Admin'),
-                    ),
-                    array(
-                        'type' => 'text',
-                        'lang' => true,
-                        'label' => $this->trans('Message when no result return', array(), 'Modules.' . $this->name . '.Admin'),
-                        'name' => 'SEARCH_ERROR_MSG',
-                        'desc' => $this->trans('Choose message when no result return.', array(), 'Modules.' . $this->name . '.Admin'),
-                    ),
-                    array(
-                        'type' => 'text',
-                        'lang' => true,
-                        'label' => $this->trans('Link after truncate description', array(), 'Modules.' . $this->name . '.Admin'),
-                        'name' => 'SEARCH_LINK',
-                        'desc' => $this->trans('For displaying nothing, leave this field blank.', array(), 'Modules.' . $this->name . '.Admin'),
-                    ),
-                    array(
-                        'type' => 'text',
-                        'label' => $this->trans('Number max of results to display', array(), 'Modules.' . $this->name . '.Admin'),
-                        'name' => 'SEARCH_LIMIT_ITEM',
-                        'desc' => $this->trans('Choose message for waiting during searching.', array(), 'Modules.' . $this->name . '.Admin'),
-                    ),
-                    array(
-                        'type' => 'text',
-                        'label' => $this->trans('Desciption truncate length', array(), 'Modules.' . $this->name . '.Admin'),
-                        'name' => 'SEARCH_TRUNC_TITLE',
-                        'desc' => $this->trans('Choose 50 for truncate the product\'s title after 50 caracteres.', array(), 'Modules.' . $this->name . '.Admin'),
-                        'validation' => 'isInt',
-                    ),
-                    array(
-                        'type' => 'text',
-                        'label' => $this->trans('Title truncate length', array(), 'Modules.' . $this->name . '.Admin'),
-                        'name' => 'SEARCH_TRUNC_DESC',
-                        'desc' => $this->trans('Choose 50 for truncate the product\'s short description after 50 caracteres.', array(), 'Modules.' . $this->name . '.Admin'),
-                        'validation' => 'isInt',
-                    ),
-                    array(
-                        'name' => 'SEARCH_ORDERWAY',
-                        'type' => 'select',
-                        'label' => $this->trans('Sort result', array(), 'Modules.' . $this->name . '.Admin'),
-                        'desc' => $this->trans('Choose the kind of result\'s sort to display', array(), 'Modules.' . $this->name . '.Admin'),
-                        'options' => array(
-                            'query' => $this->orderWay,
-                            'id' => 'name',
-                            'name' => 'name'
-                        ),
-                    ),
-                    array(
-                        'name' => 'SEARCH_ORDERBY',
-                        'type' => 'select',
-                        'label' => $this->trans('Direction of sorting', array(), 'Modules.' . $this->name . '.Admin'),
-                        'desc' => $this->trans('You can choose acsendant or descendant', array(), 'Modules.' . $this->name . '.Admin'),
-                        'options' => array(
-                            'query' => $this->orderBy,
-                            'id' => 'name',
-                            'name' => 'name'
-                        ),
-                    ),
-                    array(
-                        'type' => 'switch',
-                        'label' => $this->trans('Show descrition on results popup', array(), 'Modules.' . $this->name . '.Admin'),
-                        'name' => 'SEARCH_SHOW_DESC',
-                        'required' => false,
-                        'is_bool' => true,
-                        'values' => array(
-                            array(
-                                'id' => 'active_on',
-                                'value' => 1,
-                                'label' => $this->trans('Enabled', array(), 'Admin.Global')
-                            ),
-                            array(
-                                'id' => 'active_off',
-                                'value' => 0,
-                                'label' => $this->trans('Disabled', array(), 'Admin.Global')
-                            )
-                        ),
-                    ),
-                    array(
-                        'type' => 'switch',
-                        'label' => $this->trans('Show price on results popup', array(), 'Modules.' . $this->name . '.Admin'),
-                        'name' => 'SEARCH_SHOW_PRICE',
-                        'required' => false,
-                        'is_bool' => true,
-                        'values' => array(
-                            array(
-                                'id' => 'active_on',
-                                'value' => 1,
-                                'label' => $this->trans('Enabled', array(), 'Admin.Global')),
-                            array(
-                                'id' => 'active_off',
-                                'value' => 0,
-                                'label' => $this->trans('Disabled', array(), 'Admin.Global'))),
 
-                    ),
+                        array(
+                            'type' => 'text',
+                            'label' => $this->trans('Api Url to connect with Meili', array(), 'Modules.' . $this->name . '.Admin'),
+                            'name' => 'SEARCH_API_URL',
+                            'desc' => $this->trans('Without any specific setup, it\'s http://127.0.0.1', array(), 'Modules.' . $this->name . '.Admin'),
+                        ),
+                        array(
+                            'type' => 'text',
+                            'label' => $this->trans('Port', array(), 'Modules.' . $this->name . '.Admin'),
+                            'name' => 'SEARCH_API_PORT',
+                            'desc' => $this->trans('Without any specific setup, it\'s will be 7700.', array(), 'Modules.' . $this->name . '.Admin'),
+                        ),
+
                 ),
                 'submit' => array(
                     'title' => $this->trans('Save', array(), 'Admin.Global'),
@@ -312,7 +175,39 @@ class ao_meili_search extends Module implements WidgetInterface
             'id_language' => $this->context->language->id,
         );
 
-        return $helper->generateForm(array($fields_form));
+        $generateForm = $helper->generateForm(array($fields_form));
+
+        $moduleUrl = Tools::getProtocol(Tools::usingSecureMode()) . $_SERVER['HTTP_HOST'] . $this->getPathUri();
+        $controllerUrl = $moduleUrl . 'controllers/';
+        $token = substr(Tools::encrypt($this->name . '/cron'), 0, 10);
+
+        $this->context->smarty->assign([
+            'uri' => $this->getPathUri(),
+            'products_indexer' => $controllerUrl . $this->name . '_index_products.php' . '?token=' . $token,
+            'categories_indexer' => $controllerUrl . $this->name . '_index_categories.php' . '?token=' . $token,
+            'drop_indexes' => $controllerUrl . $this->name . '_index_drop.php' . '?token=' . $token,
+        ]);
+
+        if(Configuration::get('SEARCH_UID_PRODUCT')) {
+            $url = Configuration::get('SEARCH_API_URL') . ':' . Configuration::get('SEARCH_API_PORT');
+            $this->context->smarty->assign([
+                'products_indexer_info' => $url . '/indexes/' . Configuration::get('SEARCH_UID_PRODUCT'),
+                'products_indexer_documents' => $url . '/indexes/' . Configuration::get('SEARCH_UID_PRODUCT') . '/documents',
+                'products_indexer_stats' => $url . '/stats/' . Configuration::get('SEARCH_UID_PRODUCT'),
+            ]);
+        }
+
+        if(Configuration::get('SEARCH_UID_CATEGORY')) {
+            $url = Configuration::get('SEARCH_API_URL') . ':' . Configuration::get('SEARCH_API_PORT');
+            $this->context->smarty->assign([
+                'categories_indexer_info' => $url . '/indexes/' . Configuration::get('SEARCH_UID_CATEGORY'),
+                'categories_indexer_documents' => $url . '/indexes/' . Configuration::get('SEARCH_UID_CATEGORY') . '/documents',
+                'categories_indexer_stats' => $url . '/stats/' . Configuration::get('SEARCH_UID_CATEGORY'),
+            ]);
+        }
+        $generateOverride = $this->display(__FILE__, 'views/templates/admin/manage.tpl');
+
+        return $generateForm.$generateOverride;
     }
 
     public function renderWidget($hookName = null, array $configuration = [])
@@ -321,7 +216,7 @@ class ao_meili_search extends Module implements WidgetInterface
             $hookName = $configuration['hook'];
         }
 
-        if (!Configuration::get('SEARCH_ACTIVE') || $this->isProblemConnexionDetected) {
+        if (!Configuration::get('SEARCH_MEILI_ACTIVE') || $this->isProblemConnexionDetected) {
             return false;
         }
 
@@ -341,79 +236,18 @@ class ao_meili_search extends Module implements WidgetInterface
         );
     }
 
-    public function AjaxSearch($searchString)
-    {
-        $context = Context::getContext();
-
-        $serp = Search::find(
-            Context::getContext()->language->id,
-            $searchString,
-            1 /*page_number*/,
-            Configuration::get('SEARCH_LIMIT_ITEM') /*page_size*/,
-            Configuration::get('SEARCH_ORDERWAY') /*position*/,
-            Configuration::get('SEARCH_ORDERBY') /*desc*/,
-            $ajax = false,
-            $use_cookie = true,
-            $context
-        );
-
-        $assembler = new ProductAssembler($context);
-        $presenterFactory = new ProductPresenterFactory($context);
-        $presentationSettings = $presenterFactory->getPresentationSettings();
-        $presenter = new ProductListingPresenter(
-            new ImageRetriever(
-                $context->link
-            ),
-            $context->link,
-            new PriceFormatter(),
-            new ProductColorsRetriever(),
-            $context->getTranslator()
-        );
-
-        $products_for_template = [];
-
-        foreach ($serp['result'] as &$rawProduct) {
-            $products_for_template[] = $presenter->present(
-                $presentationSettings,
-                $assembler->assembleProduct($rawProduct),
-                $context->language
-            );
-        }
-
-        $this->smarty->assign($this->getSetup(false));
-        $this->smarty->assign(array('products' => $products_for_template));
-        return $this->display(dirname(__FILE__) . '/ao_search.php', 'views/ao_search_response.tpl');
-    }
-
     private function installValues($html = null)
     {
         foreach ($this->values as $key => $value) {
             if (!Configuration::updateValue($key, $value, $html)) {
                 if (_PS_MODE_DEV_) {
-                    die('Error while update value $key');
-                } else {
-                    return false;
+                    throw new \Exception('Error while update value $key');
                 }
-            }
-        }
-        return true;
-    }
-
-    private function uninstallValues()
-    {
-        foreach ($this->values as $key => $value) {
-            if (!Configuration::deleteByName($key, $value)) {
-                if (_PS_MODE_DEV_) {
-                    die('Error while delete value $key');
-                }
-
                 return false;
             }
         }
         return true;
     }
-
-
 
     public function checkSetup($html = null)
     {
@@ -421,11 +255,11 @@ class ao_meili_search extends Module implements WidgetInterface
             if (!Configuration::hasKey($key) &&
                 !Configuration::hasKey($key, null, null, $this->context->shop->id) &&
                 !Configuration::hasKey($key, $this->context->language->id) &&
-                !Configuration::hasKey($key, $this->context->language->id, null, $this->context->shop->id)) {
-                if (!Configuration::updateValue($key, $value, $html) && _PS_MODE_DEV_) {
-                    die(' Value : $key updated, just reload the page for checking next values');
+                !Configuration::hasKey($key, $this->context->language->id, null, $this->context->shop->id) &&
+                !Configuration::updateValue($key, $value, $html) &&
+                _PS_MODE_DEV_) {
+                    throw new \Exception(" Value : $key updated, just reload the page for checking next values");
                 }
-            }
         }
 
         return $this->values;
@@ -439,7 +273,7 @@ class ao_meili_search extends Module implements WidgetInterface
         foreach ($newSetup as $key => $value) {
             if (array_key_exists($key, $this->values)) {
                 Configuration::updateValue($key, $value, true /*HTML*/) && $updated[$key] = $value;
-            } //value couls be an array from backup or a srting fo from form
+            }
             elseif (array_key_exists(substr($key, 0, -2), $this->values)) { // in case of form with multi lang like TEXT_2
                 Configuration::updateValue(substr($key, 0, -2), array(substr($key, -1) => $value), true) && $updated[$key] = $value;
             }
@@ -470,7 +304,7 @@ class ao_meili_search extends Module implements WidgetInterface
         return $updated;
     }
 
-    public function getSetup($Multilang = null /*Need multilang for admin, no need for front */)
+    public function getSetup($Multilang = null)
     {
         foreach ($this->values as $key => $value) {
             if ($Multilang && is_array($value)) {
@@ -492,13 +326,15 @@ class ao_meili_search extends Module implements WidgetInterface
         if (!Cache::isStored($cacheId)) {
 
             $result = '';
-            $uri = 'http://127.0.0.1/indexes';
+            $uri = $this->values['SEARCH_API_URL'] . '/indexes';
+
             $this->indexListMeili = $this->curlRequest($uri, null, 'GET');
 
-            if (!$this->indexListMeili && _PS_MODE_DEV_) {
+            if (!$this->indexListMeili) {
                 $this->isProblemConnexionDetected = true;
                 throw new \Exception('Connexion with Meili Search server not found. You need to start Meili server and set the URL API correctly.');
             }
+
             foreach (json_decode( $this->indexListMeili, true) as $item) {
                 if ($item['name'] === $index) {
                     Configuration::updateValue('SEARCH_UID_INDEX_PRODUCTS', $item['uid']);
@@ -518,23 +354,12 @@ class ao_meili_search extends Module implements WidgetInterface
         return $result;
     }
 
-    public function getUidIndexSearch($html = null)
-    {
-        $uri = 'http://127.0.0.1/indexes';
-        return $this->curlRequest($uri, null, 'GET');
-        return false;
-    }
-
-
     public function curlRequest($uri, $data = null, $method = 'POST')
     {
-        echo PHP_EOL . 'star method curlRequest()';
-        echo PHP_EOL . $uri;
-
         $curlObj = curl_init();
         $options = [
             CURLOPT_URL => $uri,
-            CURLOPT_PORT => _PORT_,
+            CURLOPT_PORT => Configuration::get('SEARCH_API_PORT'),
             CURLOPT_HTTPHEADER => ['content-type: application/json'],
             CURLOPT_RETURNTRANSFER => true,
             CURLOPT_CUSTOMREQUEST => $method
@@ -555,9 +380,6 @@ class ao_meili_search extends Module implements WidgetInterface
             $returnData = curl_exec($curlObj);
         }
 
-        curl_close($curlObj);
-
         return $returnData;
     }
-
 }
