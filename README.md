@@ -16,9 +16,9 @@ You problably need to get a root access to your server to install Meili.
 
 You don't need any setup.
 
-Why not use ElasticSearch
+Why use MeiliServer
 --------
-Because Meili works out-of-the-box, and it's easier to use than ElasticSearch.
+Because Meili works out-of-the-box, and it's easy to use.
 
 During first test I used it, as promisse, results are blazzing fast.
 
@@ -40,5 +40,5 @@ $ docker container ps
 
 Then install the module on Prestashop.
 
-That's all, it's probably ready to works!
+That's all, it's ready to work!
 
