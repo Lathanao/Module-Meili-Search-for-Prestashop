@@ -1,3 +1,12 @@
+/*******************************************************************
+ *          2020 Lathanao - Module for Prestashop
+ *          Add a great module and modules on your great shop.
+ *
+ *          @author         Lathanao <welcome@lathanao.com>
+ *          @copyright      2020 Lathanao
+ *          @license        MIT (see LICENCE file)
+ ********************************************************************/
+
 $(document).ready(function () {
 
     let isReadyToGetResult = false;
@@ -27,7 +36,7 @@ $(document).ready(function () {
                         result.hits.forEach( element => {
                             data += '<tr class="row"><td class="col-lg-10 col-xs-10">' +
                                 '<h5 class="header">' +
-                                '<img src="http://ps1763/img/p/2/9/7/2/6/29726-small_default.jpg" ' +
+                                '<img src="' + element.link_image + '" ' +
                                     'height="90" width="90" class="rounded image">' +
                                 '<div class="content">' +
                                 '<a href="' + element.link + '">' +

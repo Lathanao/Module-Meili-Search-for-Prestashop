@@ -1,12 +1,11 @@
-{********************************************************************
-*          Module for Prestashop
+/*******************************************************************
+*          2020 Lathanao - Module for Prestashop
 *          Add a great module and modules on your great shop.
 *
 *          @author         Lathanao <welcome@lathanao.com>
-*          @copyright      2019 Lathanao
-*          @version        1.0
-*          @license        Commercial license see README.md
-********************************************************************}
+*          @copyright      2020 Lathanao
+*          @license        MIT (see LICENCE file)
+********************************************************************/
 <div id="search-box-meili" class="col-lg-6 col-md-6 col-sm-12 col-xs-12">
 	<form method="get" action="{$search_controller_url}">
 		<div class="action input">

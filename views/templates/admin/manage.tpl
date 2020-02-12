@@ -1,3 +1,11 @@
+{**
+*          2020 Lathanao - Module for Prestashop
+*          Add a great module and modules on your great shop.
+*
+*          @author         Lathanao <welcome@lathanao.com>
+*          @copyright      2020 Lathanao
+*          @license        MIT (see LICENCE file)
+ *}
 <div class="panel">
 	<h3><i class="icon-cogs"></i> Indexes server Meili</h3>
 	<div class="row">

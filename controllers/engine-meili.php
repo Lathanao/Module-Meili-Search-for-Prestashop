@@ -5,7 +5,6 @@
  *
  *          @author         Lathanao <welcome@lathanao.com>
  *          @copyright      2020 Lathanao
- *          @version        1.0
  *          @license        MIT (see LICENCE file)
  ********************************************************************/
 

@@ -5,7 +5,6 @@
  *
  *          @author         Lathanao <welcome@lathanao.com>
  *          @copyright      2020 Lathanao
- *          @version        1.0
  *          @license        MIT (see LICENCE file)
  ********************************************************************/
 
@@ -138,6 +137,8 @@ function ao_category_collection_import() {
         'active',
         'available_for_order',
         'category',
+        'link',
+        'link_image',
     );
 
     $ao_meili_search = Module::getInstanceByName('ao_meili_search');
@@ -172,6 +173,7 @@ function ao_category_collection_import() {
             $context->language
         );
 
+        $product['link_image'] = $product["cover"]["bySize"]["cart_default"]["url"];
         $product['description'] = Tools::getDescriptionClean($product['description']);
         $product['description_short'] = Tools::getDescriptionClean($product['description_short']);
 
@@ -179,6 +181,7 @@ function ao_category_collection_import() {
         foreach ($fieldsToKeep as $item) {
             $productToImport[$item] = $product[$item];
         }
+
         echo PHP_EOL . $uri;
         echo PHP_EOL . var_dump($productToImport);
         echo PHP_EOL;
