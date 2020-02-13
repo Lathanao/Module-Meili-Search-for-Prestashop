@@ -102,6 +102,8 @@ function ao_product_collection_create () {
           }
         }';
 
+//    allow_oosp
+
     return $ao_meili_search->curlRequest($uri, $data);
 }
 
@@ -145,10 +147,6 @@ function ao_category_collection_import() {
     $url = Configuration::get('SEARCH_API_URL') . '/indexes/';
     $uri = $url. Configuration::get('SEARCH_UID_PRODUCT') . '/documents';
     $context = Context::getContext();
-    $link = Context::getContext()->link;
-    $idLang = Context::getContext()->language->id;
-    $idShop = Context::getContext()->shop->id;
-    $category_to_import = [];
 
     $assembler = new ProductAssembler($context);
     $presenterFactory = new ProductPresenterFactory($context);
@@ -167,31 +165,32 @@ function ao_category_collection_import() {
 
     foreach (getAllProductIds() as $key => &$rawProduct) {
 
-        $product = $presenter->present(
+        $rawProduct = $presenter->present(
             $presentationSettings,
             $assembler->assembleProduct($rawProduct),
             $context->language
         );
 
-        $product['link_image'] = $product["cover"]["bySize"]["cart_default"]["url"];
-        $product['description'] = Tools::getDescriptionClean($product['description']);
-        $product['description_short'] = Tools::getDescriptionClean($product['description_short']);
+        $rawProduct['link_image'] = $rawProduct["cover"]["bySize"]["cart_default"]["url"];
+        $rawProduct['description'] = Tools::getDescriptionClean($product['description']);
+        $rawProduct['description_short'] = Tools::getDescriptionClean($product['description_short']);
 
         $productToImport = [];
         foreach ($fieldsToKeep as $item) {
-            $productToImport[$item] = $product[$item];
+            $productToImport[$item] = $rawProduct[$item];
         }
 
         echo PHP_EOL . $uri;
         echo PHP_EOL . var_dump($productToImport);
         echo PHP_EOL;
         $ao_meili_search->curlRequest($uri, '[' . json_encode($productToImport) . ']');
+        $rawProduct = null;
     }
 
     return true;
 }
 
-function getAllProductIds($active = false, $root = false)
+function getAllProductIds($active = false, )
 {
     $query = new DbQuery();
     $query->select('p.id_product');
@@ -201,8 +200,8 @@ function getAllProductIds($active = false, $root = false)
     if ($active) {
         $query->where('active = 1');
     }
-    $query->where('pl.id_lang = ' . (int) 1);
-    $query->where('pl.id_shop = ' . (int) 1);
+    $query->where('pl.id_lang = ' . (int) Context::getContext()->language->id);
+    $query->where('pl.id_shop = ' . (int) Context::getContext()->shop->id);
 
     return Db::getInstance(_PS_USE_SQL_SLAVE_)->executeS($query);
 }
