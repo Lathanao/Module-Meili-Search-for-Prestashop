@@ -87,7 +87,6 @@ function ao_category_collection_import() {
     $link = Context::getContext()->link;
     $idLang = Context::getContext()->language->id;
     $idShop = Context::getContext()->shop->id;
-    $category_to_import = [];
 
     foreach (Category::getAllCategoriesName() as $key => &$rawCategory) {
 
