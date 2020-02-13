@@ -18,9 +18,6 @@ use PrestaShop\PrestaShop\Adapter\Product\PriceFormatter;
 use PrestaShop\PrestaShop\Core\Product\ProductListingPresenter;
 use PrestaShop\PrestaShop\Adapter\Product\ProductColorsRetriever;
 
-define('_URL_', 'http://localhost');
-define('_PORT_', '7700');
-
 class ao_meili_search extends Module implements WidgetInterface
 {
     public $values = array( 'SEARCH_MEILI_ACTIVE' => '1',
@@ -367,8 +364,8 @@ class ao_meili_search extends Module implements WidgetInterface
             $options[CURLOPT_POSTFIELDS] = $data;
         }
         if (stripos($uri, 'https://') === 0) {
-            $options[CURLOPT_SSL_VERIFYHOST] = 2; // have to use false
-            $options[CURLOPT_SSL_VERIFYPEER] = true; // have to use false
+            $options[CURLOPT_SSL_VERIFYHOST] = 2;
+            $options[CURLOPT_SSL_VERIFYPEER] = true;
         }
 
         curl_setopt_array($curlObj, $options);
