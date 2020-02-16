@@ -37,20 +37,29 @@
 		<div class="alert alert-info">
         {l s='Product index ' d='Modules.MeiliSearch.Admin'}
 			<br>
+			{if isset($products_indexer_info)}
 			<strong><a href="{$products_indexer_info}" target='_blank'>{$products_indexer_info}</a></strong>
+
 			<br>
 			<strong><a href="{$products_indexer_documents}" target='_blank'>{$products_indexer_documents}</a></strong>
 			<br>
 			<strong><a href="{$products_indexer_stats}" target='_blank'>{$products_indexer_stats}</a></strong>
+			{else}
+				<strong>You need to setup your products index to be able to check it</strong>
+			{/if}
 			<br>
 			<br>
-        {l s='cCategory index integrity' d='Modules.MeiliSearch.Admin'}
+        {l s='Category index integrity' d='Modules.MeiliSearch.Admin'}
 			<br>
+        {if isset($categories_indexer_info)}
 			<strong><a href="{$categories_indexer_info}" target='_blank'>{$categories_indexer_info}</a></strong>
 			<br>
 			<strong><a href="{$categories_indexer_documents}" target='_blank'>{$categories_indexer_documents}</a></strong>
 			<br>
 			<strong><a href="{$categories_indexer_stats}" target='_blank'>{$categories_indexer_stats}</a></strong>
+        {else}
+			<strong>You need to setup your products index to be able to check it</strong>
+			{/if}
 		</div>
 	</div>
 </div>

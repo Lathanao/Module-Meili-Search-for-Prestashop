@@ -16,7 +16,9 @@ use PrestaShop\PrestaShop\Core\Product\ProductListingPresenter;
 include(dirname(__FILE__) . '/../../../config/config.inc.php');
 include(dirname(__FILE__) . '/../../../init.php');
 
-header('Content-Type: application/json; charset=utf-8');
+//header('Content-Type: application/json; charset=utf-8');
+header('Content-type = text/plain');
+
 
 ini_set('display_errors', 1);
 ini_set('track_errors', 1);
@@ -26,6 +28,10 @@ ini_set('max_execution_time', 60000);
 error_reporting(E_ALL);
 
 define('_COLLECTION_', 'products');
+
+
+
+
 
 /* Check security token */
 if (!Tools::isPHPCLI()) {
@@ -41,16 +47,20 @@ if (!$ao_meili_search->active) {
 }
 
 if($resultImport = ao_product_collection_create()) {
+
     echo 'Type index : ' . json_decode($resultImport, true)['name'] . PHP_EOL;
     echo 'Uid index  : ' . json_decode($resultImport, true)['uid'] . PHP_EOL;
+
     Configuration::updateValue('SEARCH_UID_PRODUCT', json_decode($resultImport, true)['uid']);
 }
 
-if(ao_category_collection_import()) {
-    die('Import product done in index ' . Configuration::get('SEARCH_UID_CATEGORY'));
+if(ao_products_collection_import()) {
+    echo PHP_EOL . 'Import product done in index ' . Configuration::get('SEARCH_UID_PRODUCT');
 } else {
-    die('Import product fail');
+    echo PHP_EOL . 'Import product fail';
 }
+die();
+
 
 function ao_product_collection_create () {
 
@@ -107,7 +117,7 @@ function ao_product_collection_create () {
     return $ao_meili_search->curlRequest($uri, $data);
 }
 
-function ao_category_collection_import() {
+function ao_products_collection_import() {
 
     $fieldsToKeep = array(
         'id',
@@ -163,7 +173,7 @@ function ao_category_collection_import() {
 
     $products_for_template = [];
 
-    foreach (getAllProductIds() as $key => &$rawProduct) {
+    foreach (getAllProductIds(true) as $key => &$rawProduct) {
 
         $rawProduct = $presenter->present(
             $presentationSettings,
@@ -172,17 +182,14 @@ function ao_category_collection_import() {
         );
 
         $rawProduct['link_image'] = $rawProduct["cover"]["bySize"]["cart_default"]["url"];
-        $rawProduct['description'] = Tools::getDescriptionClean($product['description']);
-        $rawProduct['description_short'] = Tools::getDescriptionClean($product['description_short']);
+        $rawProduct['description'] = Tools::getDescriptionClean($rawProduct['description']);
+        $rawProduct['description_short'] = Tools::getDescriptionClean($rawProduct['description_short']);
 
         $productToImport = [];
         foreach ($fieldsToKeep as $item) {
             $productToImport[$item] = $rawProduct[$item];
         }
 
-        echo PHP_EOL . $uri;
-        echo PHP_EOL . var_dump($productToImport);
-        echo PHP_EOL;
         $ao_meili_search->curlRequest($uri, '[' . json_encode($productToImport) . ']');
         $rawProduct = null;
     }
@@ -190,7 +197,7 @@ function ao_category_collection_import() {
     return true;
 }
 
-function getAllProductIds($active = false, )
+function getAllProductIds($active = false)
 {
     $query = new DbQuery();
     $query->select('p.id_product');
@@ -198,7 +205,7 @@ function getAllProductIds($active = false, )
     $query->innerJoin('product_lang', 'pl', 'p.id_product = pl.id_product');
     $query->innerJoin('product_shop', 'ps', 'p.id_product = ps.id_product');
     if ($active) {
-        $query->where('active = 1');
+        $query->where('p.active = 1');
     }
     $query->where('pl.id_lang = ' . (int) Context::getContext()->language->id);
     $query->where('pl.id_shop = ' . (int) Context::getContext()->shop->id);

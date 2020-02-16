@@ -11,7 +11,8 @@
 include(dirname(__FILE__) . '/../../../config/config.inc.php');
 include(dirname(__FILE__) . '/../../../init.php');
 
-header('Content-Type: application/json; charset=utf-8');
+//header('Content-type = text/html');
+header('Content-type: text/plain; charset=utf-8');
 
 ini_set('display_errors', 1);
 ini_set('track_errors', 1);
@@ -34,11 +35,13 @@ $ao_meili_search = Module::getInstanceByName('ao_meili_search');
 if (!$ao_meili_search->active) {
     die('Module Inactive');
 }
-
+//echo '<h1>Type index </h1>' . PHP_EOL;
 if($resultImport = ao_category_collection_create()) {
     echo 'Type index : ' . json_decode($resultImport, true)['name'] . PHP_EOL;
     echo 'Uid index  : ' . json_decode($resultImport, true)['uid'] . PHP_EOL;
     Configuration::updateValue('SEARCH_UID_CATEGORY', json_decode($resultImport, true)['uid']);
+} else {
+    die('Index not create. Meili API not working');
 }
 
 if(ao_category_collection_import()) {

@@ -32,7 +32,6 @@ class ao_meili_search extends Module implements WidgetInterface
                                 '2' => 'Recherchez un produit'),
                             );
 
-    private $isProblemConnexionDetected = false;
     /**
      * @var bool|string
      */
@@ -59,11 +58,12 @@ class ao_meili_search extends Module implements WidgetInterface
         $this->controllers = array('ajax');
 
         $this->templateFile = array(
-            'displayTop' => 'module:' . $this->name . '/views/ao_search_displayTop.tpl');
+            'displayTop' => 'module:' . $this->name . '/views/templates/frontend/ao_search_displayTop.tpl');
     }
 
     public function install()
     {
+        $this->checkSetup();
         return parent::install()
             && $this->installValues()
             && $this->registerHook('displayHeader')
@@ -181,7 +181,7 @@ class ao_meili_search extends Module implements WidgetInterface
             'uri' => $this->getPathUri(),
             'products_indexer' => $controllerUrl . $this->name . '_index_products.php' . '?token=' . $token,
             'categories_indexer' => $controllerUrl . $this->name . '_index_categories.php' . '?token=' . $token,
-            'drop_indexes' => $controllerUrl . $this->name . '_index_drop.php' . '?token=' . $token,
+            'drop_indexes' => $controllerUrl . $this->name . '_drop_all.php' . '?token=' . $token,
         ]);
 
         if(Configuration::get('SEARCH_UID_PRODUCT')) {
@@ -208,11 +208,7 @@ class ao_meili_search extends Module implements WidgetInterface
 
     public function renderWidget($hookName = null, array $configuration = [])
     {
-        if ($hookName === null && isset($configuration['hook'])) {
-            $hookName = $configuration['hook'];
-        }
-
-        if (!Configuration::get('SEARCH_MEILI_ACTIVE') || $this->isProblemConnexionDetected) {
+        if (!Configuration::get('SEARCH_MEILI_ACTIVE') || !isset($this->templateFile[$hookName]) ) {
             return false;
         }
 
@@ -317,38 +313,44 @@ class ao_meili_search extends Module implements WidgetInterface
 
     public function getUidIndexMieli($index = 'products')
     {
-        $cacheId = 'Module::' . $this->name . $index;
+        $result = '';
+        $uri = $this->values['SEARCH_API_URL'] . '/indexes';
 
-        if (!Cache::isStored($cacheId)) {
+        $this->indexListMeili = $this->curlRequest($uri, null, 'GET');
 
-            $result = '';
-            $uri = $this->values['SEARCH_API_URL'] . '/indexes';
-
-            $this->indexListMeili = $this->curlRequest($uri, null, 'GET');
-
-            if (!$this->indexListMeili) {
-                $this->isProblemConnexionDetected = true;
-                throw new \Exception('Connexion with Meili Search server not found. You need to start Meili server and set the URL API correctly.');
-            }
-
-            foreach (json_decode( $this->indexListMeili, true) as $item) {
-                if ($item['name'] === $index) {
-                    Configuration::updateValue('SEARCH_UID_INDEX_PRODUCTS', $item['uid']);
-                    $result = $item['uid'];
-                }
-            }
-            if (!$result && _PS_MODE_DEV_) {
-                $this->isProblemConnexionDetected = true;
-                throw new \Exception('Index ' . $index . ' in Meili Search server not found. You need to set indexes.');
-            }
-
-            Cache::store($cacheId, $result);
-        } else {
-            $result = Cache::retrieve($cacheId);
+        if (!$this->indexListMeili) {
+            $this->isProblemConnexionDetected = true;
+            throw new \Exception('Connexion with Meili Search server not found. You need to start Meili server and set the URL API correctly.');
         }
 
-        return $result;
+        foreach (json_decode( $this->indexListMeili, true) as $item) {
+            if ($item['name'] === $index) {
+                Configuration::updateValue('SEARCH_UID_INDEX_PRODUCTS', $item['uid']);
+                $result = $item['uid'];
+            }
+        }
+
+        if (!$result && _PS_MODE_DEV_) {
+            $this->isProblemConnexionDetected = true;
+            throw new \Exception('Index ' . $index . ' in Meili Search server not found. You need to set indexes.');
+        }
+
+        return false;
     }
+
+    public function testMieliSearchApi($index = 'products')
+    {
+        $uri = $this->values['SEARCH_API_URL'] . '/indexes';
+
+        $resulTestMeili = $this->curlRequest($uri, null, 'GET');
+
+        if ($resulTestMeili) {
+            return true;
+        }
+        return true;
+
+    }
+
 
     public function curlRequest($uri, $data = null, $method = 'POST')
     {
@@ -375,7 +377,11 @@ class ao_meili_search extends Module implements WidgetInterface
         } else {
             $returnData = curl_exec($curlObj);
         }
-
+        echo $uri . PHP_EOL;
+        echo $data . PHP_EOL;
+        echo $method . PHP_EOL;
+        echo $returnData . PHP_EOL;
+        var_dump($options) . PHP_EOL;
         return $returnData;
     }
 }
