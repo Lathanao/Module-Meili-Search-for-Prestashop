@@ -60,7 +60,10 @@ For the path of the proxy uses in front end to request search result, please don
 That's all, it's ready to work!
 
 
-##To do
+## Demo
+https://demo.lathanao.com/
+
+## To do
 * Be sure there is no way to update meili from front end
 * Remove no allow_oosp products
 * Manage product visibility
