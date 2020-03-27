@@ -1,19 +1,13 @@
-# Install MeiliServer
+## Instant search module for Prestashop 
 
-## What is MeiliSearch ([GitHub Meili](https://github.com/meilisearch/MeiliSearch/))
-
-⚡ Ultra relevant and instant full-text search API 🔍
-
-MeiliSearch is a powerful, fast, open-source, easy to use, and deploy search engine. The search and indexation are fully customizable and handles features like typo-tolerance, filters, and synonyms.
-For more [details about those features, go to our documentation](https://docs.meilisearch.com/).
-
-## About the module
-
-This module need a Meili server to be use.
+This moduleworks with MeiliServer 0.85.
 
 You problably need to get a root access to your server to install Meili.
 
-You don't need any setup.
+No need any setup.
+
+## Demo
+https://demo.lathanao.com/
 
 ## Why use MeiliServer
 
@@ -22,11 +16,19 @@ Because Meili works out-of-the-box, and it's easy to use.
 During first test I used it, as promisse, results are blazzing fast.
 
 And the accuracy of the search results is ultra relevant.
+Meili
+
+## What is MeiliSearch ([GitHub Meili](https://github.com/meilisearch/MeiliSearch/))
+<a href="http://example.com/" target="_blank">Hello, world!</a>
+⚡ Ultra relevant and instant full-text search API 🔍
+
+MeiliSearch is a powerful, fast, open-source, easy to use, and deploy search engine. The search and indexation are fully customizable and handles features like typo-tolerance, filters, and synonyms.
+For more [details about those features, go to our documentation](https://docs.meilisearch.com/).
 
 
 ## How to install
 
-### Start Mieli server just:
+### Start Meili server just:
 ```sh
 $ docker run -it --rm -p 7700:7700 -v $(pwd)/data.ms:/data.ms getmeili/meilisearch
 ```
@@ -44,12 +46,13 @@ location /instantsearch/ {
 }
 ```
 The proxy path (here 'instantsearch'), need to match with what you set in BO.
+
 To check if it's runing well or not, in your browser, try :
 ```sh
 http(s)://your.shop.com/instantsearch/indexes
 ```
 
-For the path of the proxy uses in front end to request search result, please don't use 'search', it's already used by Prestashop for the search page.
+For the path of the proxy uses in front end to request search result, please don't use 'search', because it's already used by Prestashop for the search page URL.
 
 ### Install the module on Prestashop
 * Download the archive
@@ -60,8 +63,6 @@ For the path of the proxy uses in front end to request search result, please don
 That's all, it's ready to work!
 
 
-## Demo
-https://demo.lathanao.com/
 
 ## To do
 * Be sure there is no way to update meili from front end
@@ -74,6 +75,15 @@ https://demo.lathanao.com/
 * Add stat on BO
 * Add a second way to make to ajax call (proxy php)
 * save query searched, and save them in Prestashop DB
+  -> save every vistited links from results box
 * Add a possibility to add some other fields
 * Add the Prestashop weight ponderation with ranking parameters
+
+## Change log
+##### 0.2.1
+* Make compatible with Meili 0.9
+* Be sure there is no way to update meili from front end
+##### 0.2.0
+* Add nginx proxy
+* Improve BO
 
