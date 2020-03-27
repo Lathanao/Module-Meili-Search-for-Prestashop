@@ -3,18 +3,18 @@
  *          2020 Lathanao - Module for Prestashop
  *          Add a great module and modules on your great shop.
  *
- *          @author         Lathanao <welcome@lathanao.com>
- *          @copyright      2020 Lathanao
- *          @license        MIT (see LICENCE file)
+ * @author         Lathanao <welcome@lathanao.com>
+ * @copyright      2020 Lathanao
+ * @license        MIT (see LICENCE file)
  ********************************************************************/
+
+include(dirname(__FILE__) . '/../../../config/config.inc.php');
+include(dirname(__FILE__) . '/../../../init.php');
 
 use PrestaShop\PrestaShop\Adapter\Image\ImageRetriever;
 use PrestaShop\PrestaShop\Adapter\Product\PriceFormatter;
 use PrestaShop\PrestaShop\Adapter\Product\ProductColorsRetriever;
 use PrestaShop\PrestaShop\Core\Product\ProductListingPresenter;
-
-include(dirname(__FILE__) . '/../../../config/config.inc.php');
-include(dirname(__FILE__) . '/../../../init.php');
 
 //header('Content-Type: application/json; charset=utf-8');
 //header('Content-Type: application/json; charset=utf-8');
@@ -36,21 +36,23 @@ if (!Tools::isPHPCLI()) {
     }
 }
 
-$ao_meili_search = Module::getInstanceByName('ao_meili_search');
+Configuration::updateValue('SEARCH_UID_PRODUCT', null);
+Configuration::updateValue('SEARCH_UID_CATEGORY', null);
 
+$ao_meili_search = Module::getInstanceByName('ao_meili_search');
 if (!$ao_meili_search->active) {
     die('Module Inactive');
 }
 
-$url = Configuration::get('SEARCH_API_URL') . '/indexes';
-$indexListMeili = $ao_meili_search->curlRequest($url, null, 'GET');
+$uri = Context::getContext()->link->getBaseLink() . Configuration::get('SEARCH_API_PATH') . '/indexes';
+$indexesListMeili = $ao_meili_search->curlRequest($uri, null, 'GET');
 
-if (!$indexListMeili) {
+if (!$indexesListMeili) {
     throw new \Exception('Connexion with Meili Search server not found. You need to start Meili server and set the URL API correctly.');
 }
 
-foreach (json_decode( $indexListMeili, true) as $item) {
-    $ao_meili_search->curlRequest($url . '/' . $item['uid'], null, 'DELETE');
+foreach (json_decode($indexesListMeili, true) as $item) {
+    $ao_meili_search->curlRequest($uri . '/' . $item['uid'], null, 'DELETE');
 }
 
 die('All indexes have been droped');

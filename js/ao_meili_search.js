@@ -23,6 +23,7 @@ $(document).ready(function () {
                 $.ajax({
                     type: "GET",
                     url: URL_API_MEILI + '/indexes/' + UidIndexSearchProducts + '/search',
+                    // url: search_proxy,
                     contentType: "application/json",
                     dataType: 'json',
                     data: {q: this.value,

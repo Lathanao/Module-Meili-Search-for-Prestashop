@@ -3,9 +3,9 @@
  *          2020 Lathanao - Module for Prestashop
  *          Add a great module and modules on your great shop.
  *
- *          @author         Lathanao <welcome@lathanao.com>
- *          @copyright      2020 Lathanao
- *          @license        MIT (see LICENCE file)
+ * @author         Lathanao <welcome@lathanao.com>
+ * @copyright      2020 Lathanao
+ * @license        MIT (see LICENCE file)
  ********************************************************************/
 
 use PrestaShop\PrestaShop\Adapter\Image\ImageRetriever;
@@ -16,9 +16,8 @@ use PrestaShop\PrestaShop\Core\Product\ProductListingPresenter;
 include(dirname(__FILE__) . '/../../../config/config.inc.php');
 include(dirname(__FILE__) . '/../../../init.php');
 
-//header('Content-Type: application/json; charset=utf-8');
-header('Content-type = text/plain');
-
+header('Content-Type: application/json; charset=utf-8');
+//header('Content-type: text/plain; charset=utf-8');
 
 ini_set('display_errors', 1);
 ini_set('track_errors', 1);
@@ -29,10 +28,6 @@ error_reporting(E_ALL);
 
 define('_COLLECTION_', 'products');
 
-
-
-
-
 /* Check security token */
 if (!Tools::isPHPCLI()) {
     if (Tools::substr(Tools::encrypt('ao_meili_search/cron'), 0, 10) !== Tools::getValue('token') || !Module::isInstalled('ao_meili_search')) {
@@ -40,39 +35,40 @@ if (!Tools::isPHPCLI()) {
     }
 }
 
+/* Bring back module instance to use method */
 $ao_meili_search = Module::getInstanceByName('ao_meili_search');
 
 if (!$ao_meili_search->active) {
     die('Module Inactive');
 }
 
-if($resultImport = ao_product_collection_create()) {
-
+/* Create collection then check result */
+if ($resultImport = ao_product_collection_create()) {
     echo 'Type index : ' . json_decode($resultImport, true)['name'] . PHP_EOL;
     echo 'Uid index  : ' . json_decode($resultImport, true)['uid'] . PHP_EOL;
-
     Configuration::updateValue('SEARCH_UID_PRODUCT', json_decode($resultImport, true)['uid']);
+} else {
+    die('Product index not created. Meili API not respond');
 }
 
-if(ao_products_collection_import()) {
+/* Import product collection */
+if (ao_products_collection_import()) {
     echo PHP_EOL . 'Import product done in index ' . Configuration::get('SEARCH_UID_PRODUCT');
 } else {
     echo PHP_EOL . 'Import product fail';
 }
+
 die();
 
 
-function ao_product_collection_create () {
-
-    if(!Configuration::get('SEARCH_API_URL')) {
-        throw new \Exception('URL API server Meili must be set.');
+function ao_product_collection_create()
+{
+    if (!Configuration::get('SEARCH_API_PATH')) {
+        throw new Exception('Port API path Meili must be set.');
     }
 
-    if(!Configuration::get('SEARCH_API_PORT')) {
-        throw new \Exception('Port API server Meili must be set.');
-    }
+    $uri = Context::getContext()->link->getBaseLink() . Configuration::get('SEARCH_API_PATH') . '/indexes';
 
-    $uri = Configuration::get('SEARCH_API_URL') . '/indexes';
     $ao_meili_search = Module::getInstanceByName('ao_meili_search');
     $data = '{
           "name": "' . _COLLECTION_ . '",
@@ -113,11 +109,11 @@ function ao_product_collection_create () {
         }';
 
 //    allow_oosp
-
     return $ao_meili_search->curlRequest($uri, $data);
 }
 
-function ao_products_collection_import() {
+function ao_products_collection_import()
+{
 
     $fieldsToKeep = array(
         'id',
@@ -154,8 +150,10 @@ function ao_products_collection_import() {
     );
 
     $ao_meili_search = Module::getInstanceByName('ao_meili_search');
-    $url = Configuration::get('SEARCH_API_URL') . '/indexes/';
-    $uri = $url. Configuration::get('SEARCH_UID_PRODUCT') . '/documents';
+
+    $uri = Context::getContext()->link->getBaseLink() . Configuration::get('SEARCH_API_PATH') . '/indexes/';
+    $uri .= Configuration::get('SEARCH_UID_PRODUCT') . '/documents';
+
     $context = Context::getContext();
 
     $assembler = new ProductAssembler($context);
@@ -189,7 +187,6 @@ function ao_products_collection_import() {
         foreach ($fieldsToKeep as $item) {
             $productToImport[$item] = $rawProduct[$item];
         }
-
         $ao_meili_search->curlRequest($uri, '[' . json_encode($productToImport) . ']');
         $rawProduct = null;
     }
@@ -207,8 +204,8 @@ function getAllProductIds($active = false)
     if ($active) {
         $query->where('p.active = 1');
     }
-    $query->where('pl.id_lang = ' . (int) Context::getContext()->language->id);
-    $query->where('pl.id_shop = ' . (int) Context::getContext()->shop->id);
+    $query->where('pl.id_lang = ' . (int)Context::getContext()->language->id);
+    $query->where('pl.id_shop = ' . (int)Context::getContext()->shop->id);
 
     return Db::getInstance(_PS_USE_SQL_SLAVE_)->executeS($query);
 }

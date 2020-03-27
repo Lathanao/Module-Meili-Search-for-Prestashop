@@ -23,6 +23,7 @@ class ao_meili_search extends Module implements WidgetInterface
     public $values = array( 'SEARCH_MEILI_ACTIVE' => '1',
                             'SEARCH_API_URL' => 'http://127.0.0.1',
                             'SEARCH_API_PORT' => '700',
+                            'SEARCH_API_PATH' => 'instantsearch',
                             'SEARCH_LIMIT_PRODUCTS' => '6',
                             'SEARCH_LIMIT_CATEGORY' => '2',
                             'SEARCH_UID_PRODUCT' => '',
@@ -47,7 +48,7 @@ class ao_meili_search extends Module implements WidgetInterface
         $this->name      = 'ao_meili_search';
         $this->tab       = 'front_office_features';
         $this->author    = 'Lathanao';
-        $this->version   = '1.1.0';
+        $this->version   = '0.2.0';
         $this->bootstrap = true;
 
         parent::__construct();
@@ -78,20 +79,19 @@ class ao_meili_search extends Module implements WidgetInterface
 
     public function hookdisplayHeader($params)
     {
+        Media::addJsDef(array("URL_API_MEILI" => Context::getContext()->link->getBaseLink() . Configuration::get('SEARCH_API_PATH')))  ;
         Media::addJsDef(array('UidIndexSearchProducts' => Configuration::get('SEARCH_UID_PRODUCT')));
         Media::addJsDef(array('UidIndexSearchCategories' => Configuration::get('SEARCH_UID_CATEGORY')));
 
-        Media::addJsDef(array('SearchLimitItem' =>  Configuration::get('SEARCH_LIMIT_ITEM', $this->context->language->id)));
-
-        Media::addJsDef(array("SearchUrl" => $this->context->link->getModuleLink($this->name, 'ajax', array(), null, null, null, true)));
-        Media::addJsDef(array("DirectSearchUrl" => $this->context->link->getModuleLink($this->name, 'ajax', array(), null, null, null, true)));
+        Media::addJsDef(array('SearchLimitProduct' => Configuration::get('SEARCH_LIMIT_PRODUCTS', $this->context->language->id)));
+        Media::addJsDef(array('SearchLimitCategory' => Configuration::get('SEARCH_LIMIT_CATEGORY', $this->context->language->id)));
 
         Media::addJsDef(array("SearchWaitMsg" => Configuration::get('SEARCH_WAIT_MSG', $this->context->language->id)));
         Media::addJsDef(array("SearchErrorMsg" => Configuration::get('SEARCH_ERROR_MSG', $this->context->language->id)));
 
-
-        Media::addJsDef(array("URL_API_MEILI" => Configuration::get('SEARCH_API_URL') . ':' . Configuration::get('SEARCH_API_PORT')));
-
+        $moduleUrl = Tools::getProtocol(Tools::usingSecureMode()) . $_SERVER['HTTP_HOST'] . $this->getPathUri();
+        $controllerUrl = $moduleUrl . 'controllers/';
+        Media::addJsDef(array("search_proxy" => $controllerUrl . $this->name . '_proxy.php'));
 
         $this->context->controller->registerStylesheet(
             'modules-css-' . $this->name,
@@ -119,7 +119,7 @@ class ao_meili_search extends Module implements WidgetInterface
         $fields_form = array(
             'form' => array(
                 'legend' => array('title' => $this->trans('Settings', array(), 'Admin.Global'), 'icon' => 'icon-cogs'),
-                'description' => $this->trans('You must too install a Meili server on your server.', array(), 'Modules.' . $this->name . '.Admin'),
+                'description' => $this->trans('You must install Meili server on your server: https://docs.meilisearch.com.', array(), 'Modules.' . $this->name . '.Admin'),
                 'input' => array(
                     array(
                         'type' => 'switch',
@@ -140,20 +140,24 @@ class ao_meili_search extends Module implements WidgetInterface
                             )
                         ),
                     ),
-
-                        array(
-                            'type' => 'text',
-                            'label' => $this->trans('Api Url to connect with Meili', array(), 'Modules.' . $this->name . '.Admin'),
-                            'name' => 'SEARCH_API_URL',
-                            'desc' => $this->trans('Without any specific setup, it\'s http://127.0.0.1', array(), 'Modules.' . $this->name . '.Admin'),
-                        ),
-                        array(
-                            'type' => 'text',
-                            'label' => $this->trans('Port', array(), 'Modules.' . $this->name . '.Admin'),
-                            'name' => 'SEARCH_API_PORT',
-                            'desc' => $this->trans('Without any specific setup, it\'s will be 7700.', array(), 'Modules.' . $this->name . '.Admin'),
-                        ),
-
+                    array(
+                        'type' => 'text',
+                        'label' => $this->trans('URL Api Url Meili', array(), 'Modules.' . $this->name . '.Admin'),
+                        'name' => 'SEARCH_API_URL',
+                        'desc' => $this->trans('URL to connect on Meili Api on your server, if you use docker, it\'s should be http://127.0.0.1', array(), 'Modules.' . $this->name . '.Admin'),
+                    ),
+                    array(
+                        'type' => 'text',
+                        'label' => $this->trans('Port', array(), 'Modules.' . $this->name . '.Admin'),
+                        'name' => 'SEARCH_API_PORT',
+                        'desc' => $this->trans('Without any specific setup, the port is 7700.', array(), 'Modules.' . $this->name . '.Admin'),
+                    ),
+                    array(
+                        'type' => 'text',
+                        'label' => $this->trans('Proxy path', array(), 'Modules.' . $this->name . '.Admin'),
+                        'name' => 'SEARCH_API_PATH',
+                        'desc' => $this->trans('Path in URL use in front end to request search result. Please don\'t use \'search\', it\'s already used by Prestashop for the search page.', array(), 'Modules.' . $this->name . '.Admin'),
+                    ),
                 ),
                 'submit' => array(
                     'title' => $this->trans('Save', array(), 'Admin.Global'),
@@ -176,34 +180,35 @@ class ao_meili_search extends Module implements WidgetInterface
         $moduleUrl = Tools::getProtocol(Tools::usingSecureMode()) . $_SERVER['HTTP_HOST'] . $this->getPathUri();
         $controllerUrl = $moduleUrl . 'controllers/';
         $token = substr(Tools::encrypt($this->name . '/cron'), 0, 10);
+        $url = Context::getContext()->link->getBaseLink() . Configuration::get('SEARCH_API_PATH');
 
         $this->context->smarty->assign([
             'uri' => $this->getPathUri(),
+            'isMeilliDetected' => $this->isMeilliDetected(),
+            'isCurlDetected' => function_exists('curl_version'),
+            'isUidProductMatchWithUidInDb' => $this->isUidProductMatchWithUidInDb(),
+            'isUidCategoryMatchWithUidInDb' => $this->isUidCategoryMatchWithUidInDb(),
+
             'products_indexer' => $controllerUrl . $this->name . '_index_products.php' . '?token=' . $token,
             'categories_indexer' => $controllerUrl . $this->name . '_index_categories.php' . '?token=' . $token,
             'drop_indexes' => $controllerUrl . $this->name . '_drop_all.php' . '?token=' . $token,
+
+            'product_UID' => Configuration::get('SEARCH_UID_PRODUCT'),
+            'product_indexer_info' => $url . '/indexes/' . Configuration::get('SEARCH_UID_PRODUCT'),
+            'product_indexer_documents' => $url . '/indexes/' . Configuration::get('SEARCH_UID_PRODUCT') . '/documents',
+            'product_indexer_stats' => $url . '/stats/' . Configuration::get('SEARCH_UID_PRODUCT'),
+
+            'category_UID' => Configuration::get('SEARCH_UID_CATEGORY'),
+            'category_indexer_info' => $url . '/indexes/' . Configuration::get('SEARCH_UID_CATEGORY'),
+            'category_indexer_documents' => $url . '/indexes/' . Configuration::get('SEARCH_UID_CATEGORY') . '/documents',
+            'category_indexer_stats' => $url . '/stats/' . Configuration::get('SEARCH_UID_CATEGORY'),
+
+            'link_readme' => Context::getContext()->link->getBaseLink() . 'modules/' . $this->name . '/README.md',
         ]);
 
-        if(Configuration::get('SEARCH_UID_PRODUCT')) {
-            $url = Configuration::get('SEARCH_API_URL') . ':' . Configuration::get('SEARCH_API_PORT');
-            $this->context->smarty->assign([
-                'products_indexer_info' => $url . '/indexes/' . Configuration::get('SEARCH_UID_PRODUCT'),
-                'products_indexer_documents' => $url . '/indexes/' . Configuration::get('SEARCH_UID_PRODUCT') . '/documents',
-                'products_indexer_stats' => $url . '/stats/' . Configuration::get('SEARCH_UID_PRODUCT'),
-            ]);
-        }
-
-        if(Configuration::get('SEARCH_UID_CATEGORY')) {
-            $url = Configuration::get('SEARCH_API_URL') . ':' . Configuration::get('SEARCH_API_PORT');
-            $this->context->smarty->assign([
-                'categories_indexer_info' => $url . '/indexes/' . Configuration::get('SEARCH_UID_CATEGORY'),
-                'categories_indexer_documents' => $url . '/indexes/' . Configuration::get('SEARCH_UID_CATEGORY') . '/documents',
-                'categories_indexer_stats' => $url . '/stats/' . Configuration::get('SEARCH_UID_CATEGORY'),
-            ]);
-        }
+        $generateDoc = $this->display(__FILE__, 'views/templates/admin/doc.tpl');
         $generateOverride = $this->display(__FILE__, 'views/templates/admin/manage.tpl');
-
-        return $generateForm.$generateOverride;
+        return $generateDoc.$generateForm.$generateOverride;
     }
 
     public function renderWidget($hookName = null, array $configuration = [])
@@ -311,77 +316,70 @@ class ao_meili_search extends Module implements WidgetInterface
         return $this->values;
     }
 
-    public function getUidIndexMieli($index = 'products')
+    public function isMeilliDetected()
     {
-        $result = '';
-        $uri = $this->values['SEARCH_API_URL'] . '/indexes';
+        $uri = $this->context->link->getBaseLink() . $this->values['SEARCH_API_PATH'] . '/indexes';
+        return $this->curlRequest($uri, null, 'GET');
+    }
 
-        $this->indexListMeili = $this->curlRequest($uri, null, 'GET');
+    public function isUidProductMatchWithUidInDb()
+    {
+        return ($this->isUidIndexMieliExist(Configuration::get('SEARCH_UID_PRODUCT')));
+    }
 
-        if (!$this->indexListMeili) {
-            $this->isProblemConnexionDetected = true;
-            throw new \Exception('Connexion with Meili Search server not found. You need to start Meili server and set the URL API correctly.');
+    public function isUidCategoryMatchWithUidInDb()
+    {
+        return ($this->isUidIndexMieliExist(Configuration::get('SEARCH_UID_CATEGORY')));
+    }
+
+    public function isUidIndexMieliExist($uid = null)
+    {
+        if(!$this->isMeilliDetected() || $uid == null) {
+            return false;
         }
 
-        foreach (json_decode( $this->indexListMeili, true) as $item) {
-            if ($item['name'] === $index) {
-                Configuration::updateValue('SEARCH_UID_INDEX_PRODUCTS', $item['uid']);
-                $result = $item['uid'];
+        $uri = $this->context->link->getBaseLink() . $this->values['SEARCH_API_PATH'] . '/indexes';
+        $indexesListMeili = $this->curlRequest($uri, null, 'GET');
+
+        foreach (json_decode( $indexesListMeili, true) as $item) {
+            if ($item['uid'] === $uid) {
+                return $item['uid'];
             }
-        }
-
-        if (!$result && _PS_MODE_DEV_) {
-            $this->isProblemConnexionDetected = true;
-            throw new \Exception('Index ' . $index . ' in Meili Search server not found. You need to set indexes.');
         }
 
         return false;
     }
-
-    public function testMieliSearchApi($index = 'products')
-    {
-        $uri = $this->values['SEARCH_API_URL'] . '/indexes';
-
-        $resulTestMeili = $this->curlRequest($uri, null, 'GET');
-
-        if ($resulTestMeili) {
-            return true;
-        }
-        return true;
-
-    }
-
 
     public function curlRequest($uri, $data = null, $method = 'POST')
     {
         $curlObj = curl_init();
         $options = [
             CURLOPT_URL => $uri,
-            CURLOPT_PORT => Configuration::get('SEARCH_API_PORT'),
+            CURLOPT_PORT => $_SERVER['SERVER_PORT'],
             CURLOPT_HTTPHEADER => ['content-type: application/json'],
             CURLOPT_RETURNTRANSFER => true,
-            CURLOPT_CUSTOMREQUEST => $method
+            CURLOPT_CUSTOMREQUEST => $method,
         ];
         if (!empty($data)) {
             $options[CURLOPT_POSTFIELDS] = $data;
         }
-        if (stripos($uri, 'https://') === 0) {
+        if (stripos($uri, 'https') === 0) {
             $options[CURLOPT_SSL_VERIFYHOST] = 2;
             $options[CURLOPT_SSL_VERIFYPEER] = true;
         }
 
         curl_setopt_array($curlObj, $options);
+        $result = curl_exec($curlObj);
 
         if (curl_errno($curlObj)) {
-            $returnData = curl_error($curlObj);
-        } else {
-            $returnData = curl_exec($curlObj);
+            return curl_error($curlObj);
         }
-        echo $uri . PHP_EOL;
-        echo $data . PHP_EOL;
-        echo $method . PHP_EOL;
-        echo $returnData . PHP_EOL;
-        var_dump($options) . PHP_EOL;
-        return $returnData;
+
+        $code = curl_getinfo($curlObj, CURLINFO_RESPONSE_CODE);
+        if (substr($code, 0, 1) == 2) {
+            return $result;
+        }
+
+        return false;
     }
 }
