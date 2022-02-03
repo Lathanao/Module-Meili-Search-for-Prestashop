@@ -1,13 +1,11 @@
 ## Instant search module for Prestashop 
 
-This moduleworks with MeiliServer 0.85.
+This moduleworks with MeiliServer 0.85 only.
 
 You problably need to get a root access to your server to install Meili.
 
 No need any setup.
 
-## Demo
-https://demo.lathanao.com/
 
 ## Why use MeiliServer
 
@@ -65,7 +63,6 @@ That's all, it's ready to work!
 
 
 ## To do
-* Be sure there is no way to update meili from front end
 * Remove no allow_oosp products
 * Manage product visibility
 * Add product triger/hook (save, etc..)
