@@ -17,7 +17,6 @@ And the accuracy of the search results is ultra relevant.
 Meili
 
 ## What is MeiliSearch ([GitHub Meili](https://github.com/meilisearch/MeiliSearch/))
-<a href="http://example.com/" target="_blank">Hello, world!</a>
 Instant full-text search API
 
 MeiliSearch is a powerful, fast, open-source, easy to use, and deploy search engine. The search and indexation are fully customizable and handles features like typo-tolerance, filters, and synonyms.
